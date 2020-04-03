@@ -3,8 +3,7 @@ import javax.sound.sampled.*;
 import java.io.*;
 
 public class HAudioOutputStream {
-    //ByteArrayOutputStream byteArrayOutputStream;
-    HCastOutputStream out;
+    HCastOutputStream out; //ByteArrayOutputStream byteArrayOutputStream;
     AudioFormat audioFormat;
     TargetDataLine targetDataLine;
     boolean stopCapture; //controls the data capture duration; for now, leave it always capturing
@@ -16,10 +15,10 @@ public class HAudioOutputStream {
         Thread.sleep(4000); // InterruptedException addressed
         StreamManager streamManager = MySocket.getStreamManager();
 
-        //String MyLogicalAddress = MySocket.getLogicalAddress().toString();
-        //System.out.println("Logical address is " + MyLogicalAddress + ".");
+        String MyLogicalAddress = MySocket.getLogicalAddress().toString();
+        System.out.println("Logical address is " + MyLogicalAddress + ".");
 
-        // capture from microphone and save audio data in byteArrayOutputStream
+        // capture
         try {
             //byteArrayOutputStream = new ByteArrayOutputStream();
             out = streamManager.getOutputStream(streamId);
@@ -35,9 +34,11 @@ public class HAudioOutputStream {
             targetDataLine.open(audioFormat);
             targetDataLine.start(); //allows the line to engage in data input i.e. begins to capture data from the mic, store in internal buffer & available to program
             //note that program must continue to read data from the internal buffer at a rate that avoids overflow
+            System.out.println("CaptureAudio: TargetDataLine opened successfully");
 
             // create a thread which continues capturing and saving the audio data until input to stop
             Thread captureThread = new Thread(new CaptureThread());
+            System.out.println("CaptureAudio: calling captureThread to run");
             captureThread.start();
 
         } catch (Exception e) {
@@ -63,13 +64,23 @@ public class HAudioOutputStream {
 
         public void run() {
             try {
+                int i = 0;
                 int cnt = targetDataLine.read(tempBuffer, 0, tempBuffer.length);
+                System.out.println("CaptureAudio: reading the first batch from Line to tempBuffer successfully");
+                System.out.println(".");
                 while (!stopCapture & cnt > 0) {
                     out.write(tempBuffer, 0, cnt);
+                    System.out.println("CaptureAudio: writing successfully from tempBuffer to OutputStream");
+                    System.out.println(".");
                     out.flush();
+                    System.out.println("flushed");
                     cnt = targetDataLine.read(tempBuffer, 0, tempBuffer.length);
+                    System.out.println("CaptureAudio: re-reading from Line to tempBuffer successfully"+ new String(String.valueOf(i)));
+                    i++;
                 }
                 out.close();
+                System.out.println("CaptureAudio: finished reading from Line to OutputStream & closed stream successfully");
+                System.out.println(".");
             } catch (Exception e) {
                 System.out.println(e);
                 System.exit(0);
@@ -78,7 +89,7 @@ public class HAudioOutputStream {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        HAudioOutputStream hAudioOutputStream = new HAudioOutputStream("/hypercast.xml", 1111);
+        HAudioOutputStream hAudioOutputStream = new HAudioOutputStream("hypercast.xml", 1111);
     }
 
 }

@@ -29,9 +29,4 @@ public class TextSocket implements I_ReceiveCallback {
         I_OverlayMessage message = socket.createMessage(data);
         socket.sendToNode(message, logicalAddress);
     }
-
-    public static void main(String[] args) {
-        TextSocket textSocket = new TextSocket("C:\\Users\\wusix\\Documents\\courses\\csc299\\CampusTour\\config\\hypercast.xml");
-        textSocket.sendToAll("Hello World");
-    }
 }

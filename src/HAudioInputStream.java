@@ -15,17 +15,19 @@ public class HAudioInputStream {
         Thread.sleep(4000); // InterruptedException addressed
         StreamManager streamManager = MySocket.getStreamManager();
 
-        //String MyLogicalAddress = MySocket.getLogicalAddress().toString();
-        //System.out.println("Logical address is " + MyLogicalAddress + ".");
+        String MyLogicalAddress = MySocket.getLogicalAddress().toString();
+        System.out.println("Logical address is " + MyLogicalAddress + ".");
 
         //playback audio
         try {
             in = streamManager.acceptInputStream(streamId); //8192 bytes
+            System.out.println("PlayAudio: InputStream received");
             audioFormat = getAudioFormat();
 
             // create an audio stream based on the input byte stream, byteArrayInputStream
-            audioInputStream = new AudioInputStream(in, audioFormat, 8192 / audioFormat.getFrameSize());
+            //audioInputStream = new AudioInputStream(in, audioFormat, 8192 / audioFormat.getFrameSize());
             //the stream's length is measured in 'number of sample frames'
+            //System.out.println("PlayAudio: audioInputStream created successfully");
 
             // get a SourceDataLine object from AudioSystem
             // the getLine method returns a Line object of the specified Line.Info object's type
@@ -35,9 +37,11 @@ public class HAudioInputStream {
             // prepare sourceDataLine for use (open & start)
             sourceDataLine.open(audioFormat); //opens the line with specified format for acquiring relevant system resources
             sourceDataLine.start();
+            System.out.println("PlayAudio: SourceDataLine opened successfully");
 
             // start a thread, which will run until all the previously captured data's played back
             Thread playThread = new Thread(new PlayThread()); //declares additional instance variable tempBuffer to Thread object, see inner class below
+            System.out.println("PlayAudio: calling playThread to run");
             playThread.start(); //causes the object's run method to be executed
 
         } catch (Exception e) {
@@ -63,26 +67,38 @@ public class HAudioInputStream {
         byte[] tempBuffer = new byte[8192]; //can specify other values for byte array length, according to available memory of the hardware
 
         public void run() {
-            try {
-                // fill up tempBuffer with data from the audio stream
-                int cnt = audioInputStream.read(tempBuffer, 0, tempBuffer.length); //counter for the number of bytes that will be later read into the buffer; the read method reads up to a specified maximum number of bytes of data (the length of the tempBuffer) putting them into the specified byte array (tempBuffer), beginning at the specified byte index (0)
-                while (cnt > 0) {
-                    // writes 8192 bytes to sourceDataLine, which is automatically delivered to the speaker of the hardware
-                    sourceDataLine.write(tempBuffer, 0, cnt);
-                    cnt = audioInputStream.read(tempBuffer, 0, tempBuffer.length);
-                }
-                // after all data read from the audio stream, finishing off
-                sourceDataLine.drain(); //causes the program to block and wait for the internal buffer of the SourceDataLine to empty (all data delivered to speaker)
-                sourceDataLine.close(); //releases resources
+            while (true) {
+                byte[] tempBuffer = new byte[8192]; //can specify other values for byte array length, according to available memory of the hardware
+                // create an audio stream based on the input byte stream, byteArrayInputStream
+                audioInputStream = new AudioInputStream(in, audioFormat, 8192 / audioFormat.getFrameSize());
+                //the stream's length is measured in 'number of sample frames'
+                System.out.println("PlayAudio: audioInputStream created successfully");
 
-            } catch (Exception e) {
-                System.out.println(e);
-                System.exit(0);
-            }
+                try {
+                    // fill up tempBuffer with data from the audio stream
+                    int i = 0;
+                    int cnt = audioInputStream.read(tempBuffer, 0, tempBuffer.length); //counter for the number of bytes that will be later read into the buffer; the read method reads up to a specified maximum number of bytes of data (the length of the tempBuffer) putting them into the specified byte array (tempBuffer), beginning at the specified byte index (0)
+                    System.out.println("PlayAudio: reading the first batch from audioInputStream to tempBuffer successfully");
+                    System.out.println(".");
+                    while (cnt > 0) {
+                        // writes 8192 bytes to sourceDataLine, which is automatically delivered to the speaker of the hardware
+                        sourceDataLine.write(tempBuffer, 0, cnt);
+                        System.out.println("PlayAudio: writing successfully from tempBuffer to Line");
+                        System.out.println(".");
+                        cnt = audioInputStream.read(tempBuffer, 0, tempBuffer.length);
+                        System.out.println("PlayAudio: re-reading from audioInputStream to tempBuffer successfully" + new String(String.valueOf(i)));
+                        System.out.println(new String(String.valueOf(cnt)));
+                        i++;
+                    }
+                    } catch (Exception e) {
+                    System.out.println(e);
+                    System.exit(0);
+                    }
+                }
         }
     }
 
     public static void main(String[] args) throws InterruptedException {
-        HAudioInputStream hAudioInputStream = new HAudioInputStream("./hypercast.xml", 1111);
+        HAudioInputStream hAudioInputStream = new HAudioInputStream("hypercast.xml", 1111);
     }
 }
